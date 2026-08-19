@@ -1,0 +1,34 @@
+# --- Competition data -------------------------------------------------------
+# 119 MB total; train.csv alone is 116 MB, which is over GitHub's hard 100 MB
+# per-file limit — the push would be rejected outright. The data is freely
+# available from Kaggle and the notebooks download it automatically via
+# kagglehub when ./data is absent, so nothing is lost by excluding it.
+
+
+# --- Generated forecasts ----------------------------------------------------
+# Fully reproducible by running the notebooks; the scores are visible in the
+# committed notebook outputs.
+submissions/
+
+# --- Environment ------------------------------------------------------------
+.venv/
+venv/
+env/
+
+# --- Tooling / local state --------------------------------------------------
+.claude/
+CLAUDE.md
+
+# --- Python / Jupyter noise -------------------------------------------------
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+*.egg-info/
+.pytest_cache/
+
+# --- OS / editor ------------------------------------------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
