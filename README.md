@@ -62,7 +62,7 @@ mean of last 16 days 0.5224 · **same-weekday mean of last 8 weeks 0.5206** (the
 ### Repository layout
 
 ```
-data/                                        raw competition CSVs (read-only)
+data/                                        raw competition CSVs (not in the repo — see below)
 notebooks/
   01_exploratory_data_analysis.ipynb         EDA + effect sizing
   02_feature_engineering_and_modelling.ipynb features, LightGBM, ablations
@@ -216,10 +216,15 @@ years. That explanation is eliminated; what remains is variance or missing infor
 
 The working interpreter is a global Python 3.12 install — `.venv/` exists but is empty.
 
+**The competition data is not in this repository** — `train.csv` alone is 116 MB, over
+GitHub's per-file limit. Either download the CSVs into `./data`
+([competition page](https://www.kaggle.com/competitions/store-sales-time-series-forecasting/data)),
+or let the notebooks fetch them: each one probes `./data` and `../data` first, then falls back
+to `kagglehub.competition_download()`, so they also run unmodified on Kaggle.
+
 ```bash
 pip install -r requirements.txt
 
-# notebooks resolve DATA by probing ./data and ../data, so either directory works
 python -m nbconvert --to notebook --execute --inplace notebooks/01_exploratory_data_analysis.ipynb
 python -m nbconvert --to notebook --execute --inplace kaggle_store_sales_submission.ipynb
 ```
