@@ -3,7 +3,7 @@
 # per-file limit — the push would be rejected outright. The data is freely
 # available from Kaggle and the notebooks download it automatically via
 # kagglehub when ./data is absent, so nothing is lost by excluding it.
-
+data/
 
 # --- Generated forecasts ----------------------------------------------------
 # Fully reproducible by running the notebooks; the scores are visible in the
