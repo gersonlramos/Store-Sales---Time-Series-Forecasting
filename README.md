@@ -3,9 +3,10 @@
 Forecasting 16 days of daily unit sales for **1,782 store × product-family series** at
 Corporación Favorita, Ecuador ([Kaggle playground competition](https://www.kaggle.com/competitions/store-sales-time-series-forecasting)).
 
-A single global LightGBM, trained as a **direct** (non-recursive) forecaster on `log1p(sales)`,
-scores **RMSLE 0.39081** on a held-out fortnight — **24.9% better than the strongest naive
-baseline** (0.52063, same-weekday mean of the last 8 weeks).
+Global LightGBM models, trained as **direct** (non-recursive) forecasters on `log1p(sales)`,
+scoring **RMSLE 0.38991** on a held-out fortnight — **25.1% better than the strongest naive
+baseline** (0.52063, same-weekday mean of the last 8 weeks) — and **0.41113 on the public
+leaderboard**.
 
 > The interesting part of this repository is not the score. It is the **measurement record**:
 > which changes were tested, which were rejected, and — twice — how an effect that was
@@ -40,10 +41,39 @@ covers the full test set):
 | + promotion rework (relative intensity + known-future leads) | 0.46264 | 0.39763 | **local validation said this would *hurt*** |
 | + family/store promotion intensity, `min_data_in_leaf` 50 | 0.42093 | 0.39344 | |
 | + store traffic (`transactions`) | 0.42400 | — | ❌ reverted, +0.00307 |
-| + round cap 1200→2400, patience 50→150 | 0.42074 | **0.39081** | current |
+| + round cap 1200→2400, patience 50→150 | 0.42074 | 0.39081 | single-model reference |
+| + oil price (level + moving averages) | 0.42157 | ambiguous | ❌ reverted, +0.00083 |
+| TiDE (deep learning) + LightGBM blend | 0.42113 | 0.39012 | ❌ the blend sweep chose 100% LightGBM — see below |
+| **+ per-horizon models** | **0.41113** | **0.38991** | **current** — transferred **4.4×** its measured value |
 
 Reference points on the same holdout: all-zeros 4.4195 · last observed day 0.6595 ·
 mean of last 16 days 0.5224 · **same-weekday mean of last 8 weeks 0.5206** (the naive bar).
+
+### The change that mattered most, and why it nearly wasn't tried
+
+Every feature was shifted by **at least 16 days**, because the forecast has to reach 16 days
+past the last observation. That is correct for the final forecast day and needlessly
+conservative for the first, which is one day out and could legitimately use yesterday's sales.
+
+Splitting into four models — each using the freshest lag its horizon range legally allows —
+gained **−0.00961** on the leaderboard, the second-largest improvement in the project.
+
+This idea had previously been **tested and rejected**. The earlier attempt measured a +0.0690
+*loss* at horizon 16 and was written off. That number came from early-stopping each model
+against a single day of data (1,782 rows), so the h=16 model halted at 100 trees. At horizon
+16 both designs have identical feature staleness and *must* tie — which, with a correct
+harness, they now do exactly, to eleven decimal places. The rejection was an artefact of the
+measurement, not a property of the method.
+
+| Horizon | model | control | per-horizon | Δ |
+|---|---|---|---|---|
+| 1 | `lag ≥ 1` | 0.38888 | 0.37927 | −0.00961 |
+| 2 | `lag ≥ 2` | 0.38450 | 0.36798 | **−0.01651** |
+| 3–4 | `lag ≥ 4` | 0.38031 | 0.37525 | −0.00506 |
+| 5–16 | `lag ≥ 16` | 0.39492 | 0.39492 | **0.00000** ← sanity check, not a result |
+
+The last row is the harness proving itself: that bucket *is* the control model on those rows,
+so any value other than zero would mean the assembly was wired wrong. It is asserted in code.
 
 ## Approach
 
@@ -51,9 +81,11 @@ mean of last 16 days 0.5224 · **same-weekday mean of last 8 weeks 0.5206** (the
   dense ones; per-family models were measured and *lost* (0.42149 vs 0.40457).
 - **Direct, not recursive.** Feeding predictions back for 16 steps compounds error faster than
   `lag_1` repays: recursive pooled scored 0.46879 against 0.40457 for direct.
-- **Every lag and rolling window is shifted by ≥ 16 days**, so the whole horizon is forecastable
-  without recursion. `onpromotion` is the deliberate exception — it is *given* for the test
-  window, so current-day and short-lead values are legal and are used heavily.
+- **Every lag and rolling window is shifted by at least as many days as the horizon it serves.**
+  A target date `d` at horizon `h` has forecast origin `d − h`, so feature `lag_k` is legal iff
+  `k ≥ h`. Four models split the horizon at 1 / 2 / 3–4 / 5–16, each taking the freshest data
+  its range allows. `onpromotion` is exempt entirely — it is *given* for the test window, so
+  current-day and short-lead values are legal at any horizon and are used heavily.
 - **5-seed ensemble averaged in log space**, with `feature_fraction`/`bagging_fraction` varied
   per seed.
 - **The panel is held wide** (dates × series, 1,704 × 1,782) so a lag or rolling window is one
@@ -66,8 +98,10 @@ data/                                        raw competition CSVs (not in the re
 notebooks/
   01_exploratory_data_analysis.ipynb         EDA + effect sizing
   02_feature_engineering_and_modelling.ipynb features, LightGBM, ablations
-kaggle_store_sales_submission.ipynb          the file uploaded to Kaggle
-stakeholder_sales_forecast_report.ipynb      business-facing report (same model, no ablation log)
+kaggle_horizon_submission.ipynb              best model — four per-horizon models (LB 0.41113)
+kaggle_store_sales_submission.ipynb          single-model reference (LB 0.42074)
+kaggle_tide_lgbm_ensemble.ipynb              deep-learning ensemble experiment (null result)
+stakeholder_sales_forecast_report.ipynb      business-facing report (no ablation log)
 submissions/                                 generated forecasts
 CLAUDE.md                                    full engineering log and working rules
 ```
