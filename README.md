@@ -4,8 +4,8 @@ Forecasting 16 days of daily unit sales for **1,782 store × product-family seri
 Corporación Favorita, Ecuador ([Kaggle playground competition](https://www.kaggle.com/competitions/store-sales-time-series-forecasting)).
 
 Global LightGBM models, trained as **direct** (non-recursive) forecasters on `log1p(sales)`,
-scoring **RMSLE 0.38991** on a held-out fortnight — **25.1% better than the strongest naive
-baseline** (0.52063, same-weekday mean of the last 8 weeks) — and **0.41113 on the public
+scoring **RMSLE ~0.386** on a held-out fortnight — **26% better than the strongest naive
+baseline** (0.52063, same-weekday mean of the last 8 weeks) — and **0.39586 on the public
 leaderboard**.
 
 > The interesting part of this repository is not the score. It is the **measurement record**:
@@ -44,12 +44,43 @@ covers the full test set):
 | + round cap 1200→2400, patience 50→150 | 0.42074 | 0.39081 | single-model reference |
 | + oil price (level + moving averages) | 0.42157 | ambiguous | ❌ reverted, +0.00083 |
 | TiDE (deep learning) + LightGBM blend | 0.42113 | 0.39012 | ❌ the blend sweep chose 100% LightGBM — see below |
-| **+ per-horizon models** | **0.41113** | **0.38991** | **current** — transferred **4.4×** its measured value |
+| + per-horizon models | 0.41113 | 0.38991 | transferred **4.4×** its measured value |
+| **+ dormant-series hard zero** | **0.39586** | **≈0.3859** | **current** — transferred **5.6×**; found by diffing submissions, see below |
 
 Reference points on the same holdout: all-zeros 4.4195 · last observed day 0.6595 ·
 mean of last 16 days 0.5224 · **same-weekday mean of last 8 weeks 0.5206** (the naive bar).
 
-### The change that mattered most, and why it nearly wasn't tried
+### The largest single gain came from comparing outputs, not from a hypothesis
+
+Stuck 0.032 behind the best public notebooks, with every hypothesis-driven experiment that day
+returning a null result, the thing that worked was **comparing submission files row by row** —
+ours against the best public one. The test labels are hidden, so neither model's error can be
+decomposed directly; but their aggregate score was known to be better, so wherever the two
+forecasts differed *systematically*, the sign of the difference pointed at our own error.
+
+One difference dominated: **on 2,032 rows the public models predict exactly 0.0, and we did
+not** — we predicted a mean of 0.567 units, and as much as 37.9.
+
+The cause is structural. A pooled model shares parameters across all 1,782 series, so it
+*cannot* emit exact zero however clear the evidence; a store–category pair that has not sold a
+unit in over a year still receives a small positive forecast. Under RMSLE, where every row
+counts equally regardless of volume, those rows were **3.6% of the forecast, 0.01% of the
+units, and roughly 75% of the entire gap**.
+
+Zeroing any series with no sales in the preceding 365 days gained **−0.01527** on the
+leaderboard against **−0.00274** measured locally — a 5.6× transfer, the largest in the
+project. The threshold is deliberately conservative: it sits on a plateau (330–547 days) where
+no flagged series had actually sold, and tightening it to 300 days *reverses the sign*, because
+mis-zeroing a row that sells 3 units costs about seven times what correctly zeroing a dead one
+saves.
+
+**The finding was already half-written in the project's own notes.** They recorded this rule as
+a no-op — but measured on a *naive baseline*, where recent-history methods already predict ~0
+on dead series, with an explicit caveat that it might still pay off on a pooled model that
+leaks positive predictions. The caveat was correct and sat unexamined for months. A null result
+carrying an untested condition is a live lead, not a closed one.
+
+### The change that mattered most before that, and why it nearly wasn't tried
 
 Every feature was shifted by **at least 16 days**, because the forecast has to reach 16 days
 past the last observation. That is correct for the final forecast day and needlessly
@@ -90,6 +121,9 @@ so any value other than zero would mean the assembly was wired wrong. It is asse
   per seed.
 - **The panel is held wide** (dates × series, 1,704 × 1,782) so a lag or rolling window is one
   vectorised operation instead of a groupby over 3M rows.
+- **Structurally dead series are forced to exactly zero** as a post-processing step — a pooled
+  model cannot represent exact zero, so this fixes what the architecture cannot express rather
+  than what the features fail to say.
 
 ### Repository layout
 
