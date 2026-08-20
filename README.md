@@ -132,7 +132,8 @@ data/                                        raw competition CSVs (not in the re
 notebooks/
   01_exploratory_data_analysis.ipynb         EDA + effect sizing
   02_feature_engineering_and_modelling.ipynb features, LightGBM, ablations
-kaggle_horizon_submission.ipynb              best model — four per-horizon models (LB 0.41113)
+FEATURE_DICTIONARY.md                        all 60 model inputs: definition, source, legality
+kaggle_horizon_submission.ipynb              best model — four per-horizon models (LB 0.39586)
 kaggle_store_sales_submission.ipynb          single-model reference (LB 0.42074)
 kaggle_tide_lgbm_ensemble.ipynb              deep-learning ensemble experiment (null result)
 stakeholder_sales_forecast_report.ipynb      business-facing report (no ablation log)
