@@ -3,10 +3,10 @@
 Forecasting 16 days of daily unit sales for **1,782 store × product-family series** at
 Corporación Favorita, Ecuador ([Kaggle playground competition](https://www.kaggle.com/competitions/store-sales-time-series-forecasting)).
 
-Global LightGBM models, trained as **direct** (non-recursive) forecasters on `log1p(sales)`,
-scoring **RMSLE ~0.386** on a held-out fortnight — **26% better than the strongest naive
-baseline** (0.52063, same-weekday mean of the last 8 weeks) — and **0.39586 on the public
-leaderboard**.
+Global LightGBM models scoring **RMSLE 0.38469** on a held-out fortnight — **26% better than
+the strongest naive baseline** (0.52063, same-weekday mean of the last 8 weeks) — and
+**0.39079 on the public leaderboard**. Four **direct** per-horizon models supply 70% of the
+forecast; a **recursive** per-family model supplies the other 30%.
 
 > The interesting part of this repository is not the score. It is the **measurement record**:
 > which changes were tested, which were rejected, and — twice — how an effect that was
@@ -45,10 +45,43 @@ covers the full test set):
 | + oil price (level + moving averages) | 0.42157 | ambiguous | ❌ reverted, +0.00083 |
 | TiDE (deep learning) + LightGBM blend | 0.42113 | 0.39012 | ❌ the blend sweep chose 100% LightGBM — see below |
 | + per-horizon models | 0.41113 | 0.38991 | transferred **4.4×** its measured value |
-| **+ dormant-series hard zero** | **0.39586** | **≈0.3859** | **current** — transferred **5.6×**; found by diffing submissions, see below |
+| + dormant-series hard zero | 0.39586 | ≈0.3859 | transferred **5.6×**; found by diffing submissions, see below |
+| **+ recursive per-family blend (70/30)** | **0.39079** | **0.38469** | **current** — the first blend partner that was both decorrelated and comparable |
 
 Reference points on the same holdout: all-zeros 4.4195 · last observed day 0.6595 ·
 mean of last 16 days 0.5224 · **same-weekday mean of last 8 weeks 0.5206** (the naive bar).
+
+### Two forecasters that fail in opposite directions
+
+The final model averages a **direct** forecaster with a **recursive** one, and the reason it
+works is mechanical rather than statistical.
+
+The direct model obeys a hard constraint: a day 16 steps out may only use sales at least 16
+days old — observed, but stale. The recursive model predicts one day at a time and feeds each
+prediction back, so it has *yesterday's* value at every horizon — predicted rather than
+observed, and therefore carrying compounding error. Each wins where the other is weak:
+
+| Forecast day | Direct | Recursive |
+|---|---|---|
+| 1 | **0.38005** | 0.38488 |
+| 2 | **0.36759** | 0.38063 |
+| 8 | 0.39160 | **0.38629** |
+| 16 | 0.44508 | **0.41187** |
+
+Six earlier blend candidates failed, and the two failure modes turned out to be separate tests
+a partner must pass **simultaneously**. XGBoost, lag-depth ensembles and training-window
+ensembles were strong but correlated at 0.97–0.99 — indistinguishable from the 0.972–0.979 that
+two copies of the same model differing only by random seed produce. A neural network (TiDE), a
+linear/Fourier model and a Ridge on the same features all decorrelated properly but sat
+0.07–0.14 behind in quality, and a blend sweep gives a weak partner zero weight no matter how
+different it is.
+
+The recursive model is the first to pass both: residual correlation **0.917** — lower than our
+own seed-to-seed noise — while scoring within 0.01 of the direct half.
+
+That the recursive half *degrades* with horizon (0.385 near, 0.41–0.43 far) doubles as the
+leakage audit. A model somehow seeing the future would not degrade at all; the notebook asserts
+the degradation rather than trusting it.
 
 ### The largest single gain came from comparing outputs, not from a hypothesis
 
@@ -121,6 +154,9 @@ so any value other than zero would mean the assembly was wired wrong. It is asse
   per seed.
 - **The panel is held wide** (dates × series, 1,704 × 1,782) so a lag or rolling window is one
   vectorised operation instead of a groupby over 3M rows.
+- **A recursive per-family model supplies 30% of the forecast**, averaged in log space. It is
+  the only blend partner found that is both decorrelated from the direct model (residual
+  correlation 0.917) and comparable to it in quality.
 - **Structurally dead series are forced to exactly zero** as a post-processing step — a pooled
   model cannot represent exact zero, so this fixes what the architecture cannot express rather
   than what the features fail to say.
@@ -133,7 +169,8 @@ notebooks/
   01_exploratory_data_analysis.ipynb         EDA + effect sizing
   02_feature_engineering_and_modelling.ipynb features, LightGBM, ablations
 FEATURE_DICTIONARY.md                        all 60 model inputs: definition, source, legality
-kaggle_horizon_submission.ipynb              best model — four per-horizon models (LB 0.39586)
+kaggle_recursive_blend_submission.ipynb      best model — direct + recursive blend (LB 0.39079)
+kaggle_horizon_submission.ipynb              the direct half on its own (LB 0.39586)
 kaggle_store_sales_submission.ipynb          single-model reference (LB 0.42074)
 kaggle_tide_lgbm_ensemble.ipynb              deep-learning ensemble experiment (null result)
 stakeholder_sales_forecast_report.ipynb      business-facing report (no ablation log)
