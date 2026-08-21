@@ -47,6 +47,7 @@ covers the full test set):
 | + per-horizon models | 0.41113 | 0.38991 | transferred **4.4×** its measured value |
 | + dormant-series hard zero | 0.39586 | ≈0.3859 | transferred **5.6×**; found by diffing submissions, see below |
 | **+ recursive per-family blend (70/30)** | **0.39079** | **0.38469** | **current** — the first blend partner that was both decorrelated and comparable |
+| + mixed L2 + Huber objective in the direct half | 0.39320 | 0.39139 | ❌ reverted, +0.00241 — a paired 5/5-seed local *win* that reversed sign on the real window |
 
 Reference points on the same holdout: all-zeros 4.4195 · last observed day 0.6595 ·
 mean of last 16 days 0.5224 · **same-weekday mean of last 8 weeks 0.5206** (the naive bar).
@@ -349,15 +350,41 @@ pd.read_csv("train.csv", parse_dates=["date"], dtype={
 
 ## Where this could still go
 
-Ranked by expected value, after nine consecutive well-measured rejections:
+Both items that used to sit here have since been resolved, which is worth stating plainly rather
+than quietly replacing: **per-horizon models were built and shipped** (−0.00961 on the
+leaderboard, transferring at 4.4×), and **the loss function is now closed in both directions** —
+Tweedie and Poisson lost decisively on local measurement, and a mixed L2+Huber objective was
+submitted and lost on the leaderboard.
 
-1. **Per-horizon models** — one per day of the 16, letting near days use short lags the current
-   design must forgo. The only remaining change that alters *what information each row may see*.
-   A prototype showed −0.0124 at h=1; honest expected gain ~0.005, and it needs a multi-origin
-   validation harness to measure correctly.
-2. **The loss function** — Tweedie or Poisson on raw sales, rather than RMSE on `log1p`. Attacks
-   the intermittent low-volume regime by a different mechanism, and costs one fit to rule out.
+What the record actually says about where value remains:
 
-The feature set is close to saturated. Changes that give the model **information it did not
-previously have** transferred at or far above their measured value; changes that let the same
-model fit the same information better transferred at roughly 7% of it.
+| Kind of change | Local → leaderboard | Attempts |
+|---|---|---|
+| Information the model could not previously see | **1.3×–5.6×, once with the sign reversed in our favour** | promotion rework, per-horizon models |
+| A structural inability of the architecture | **5.6×** | dormant-series hard zero |
+| A genuinely complementary second model | **1.28×** | recursive per-family blend |
+| Fitting the same information better | **~7%, and once with the sign reversed against us** | round cap, mixed objective |
+
+The four categories are not equally worth pursuing, and the fourth may not be worth a submission
+slot at all. A fit-optimisation change has now twice been a clean, paired, multi-seed local win
+and twice failed to deliver: the round cap kept 7% of its measured value, and the Huber mix came
+back **worse by more than it had gained**. Meanwhile every change in the first three categories
+delivered at or above what was measured, and none reversed.
+
+So the honest ranking is short:
+
+1. **Anything that adds information about the test window the model cannot currently reach.**
+   Fifteen feature attempts have failed here, all for the same diagnosable reason — trees
+   reconstruct the pattern from existing features, so the explicit encoding only competes for
+   `feature_fraction` budget. The successes came from *removing a constraint* (lag staleness)
+   rather than adding a column.
+2. **Asking what the architecture cannot represent at all.** This question found the largest
+   transfer in the project, and it was found by comparing submission CSVs row by row rather than
+   by hypothesis.
+3. **A second model good enough to earn real weight.** Seven candidates measured; only one
+   passed both tests. Decorrelation is necessary but not sufficient — a partner 0.10 RMSLE behind
+   cannot earn weight no matter how differently it errs.
+
+Not worth further effort, on this evidence: hyperparameters, ensemble size (saturated at ~6
+models), objectives, calibration, and any diversity axis that turns out to correlate at 0.97 with
+a reseed — which so far is all of them except the recursive model.
