@@ -5,8 +5,9 @@ Corporación Favorita, Ecuador ([Kaggle playground competition](https://www.kagg
 
 Global LightGBM models scoring **RMSLE 0.38469** on a held-out fortnight — **26% better than
 the strongest naive baseline** (0.52063, same-weekday mean of the last 8 weeks) — and
-**0.39079 on the public leaderboard**. Four **direct** per-horizon models supply 70% of the
-forecast; a **recursive** per-family model supplies the other 30%.
+**0.38930 on the public leaderboard**. Four **direct** per-horizon models supply 70% of the
+forecast (65%/90%/50% for three families with their own leave-one-out-validated weight); a
+**recursive** per-family model supplies the rest.
 
 > The interesting part of this repository is not the score. It is the **measurement record**:
 > which changes were tested, which were rejected, and — twice — how an effect that was
@@ -46,7 +47,10 @@ covers the full test set):
 | TiDE (deep learning) + LightGBM blend | 0.42113 | 0.39012 | ❌ the blend sweep chose 100% LightGBM — see below |
 | + per-horizon models | 0.41113 | 0.38991 | transferred **4.4×** its measured value |
 | + dormant-series hard zero | 0.39586 | ≈0.3859 | transferred **5.6×**; found by diffing submissions, see below |
-| **+ recursive per-family blend (70/30)** | **0.39079** | **0.38469** | **current** — the first blend partner that was both decorrelated and comparable |
+| + recursive per-family blend (70/30) | 0.39079 | 0.38469 | the first blend partner that was both decorrelated and comparable |
+| + mixed L2 + Huber objective in the direct half | 0.39320 | 0.39139 | ❌ reverted, +0.00241 — a paired 5/5-seed local *win* that reversed sign on the real window |
+| + `rmean_3` in the near-horizon buckets | 0.39094 | 0.38494 | ⚠️ not adopted, +0.00015 — flat, inside environment noise, despite a 5.5σ local win |
+| **+ family-gated blend weight (SCHOOL/HOME APPLIANCES/AUTOMOTIVE)** | **0.38930** | **0.38469** | **current** — leave-one-out validated across three independent windows, zero sign reversals; transferred at 0.78× |
 | + mixed L2 + Huber objective in the direct half | 0.39320 | 0.39139 | ❌ reverted, +0.00241 — a paired 5/5-seed local *win* that reversed sign on the real window |
 | + `rmean_3` in the near-horizon buckets | 0.39094 | 0.38494 | ⚠️ not adopted, +0.00015 — flat, inside environment noise, despite a 5.5σ local win |
 
@@ -171,7 +175,8 @@ notebooks/
   01_exploratory_data_analysis.ipynb         EDA + effect sizing
   02_feature_engineering_and_modelling.ipynb features, LightGBM, ablations
 FEATURE_DICTIONARY.md                        all 60 model inputs: definition, source, legality
-kaggle_recursive_blend_submission.ipynb      best model — direct + recursive blend (LB 0.39079)
+kaggle_family_gate_blend_submission.ipynb    best model — direct + recursive blend, family-gated weight (LB 0.38930)
+kaggle_recursive_blend_submission.ipynb      the uniform-weight blend this improves on (LB 0.39079)
 kaggle_horizon_submission.ipynb              the direct half on its own (LB 0.39586)
 kaggle_store_sales_submission.ipynb          single-model reference (LB 0.42074)
 kaggle_tide_lgbm_ensemble.ipynb              deep-learning ensemble experiment (null result)
@@ -351,40 +356,51 @@ pd.read_csv("train.csv", parse_dates=["date"], dtype={
 
 ## Where this could still go
 
-Both items that used to sit here have since been resolved, which is worth stating plainly rather
-than quietly replacing: **per-horizon models were built and shipped** (−0.00961 on the
-leaderboard, transferring at 4.4×), and **the loss function is now closed in both directions** —
+Three items that used to sit here have since been resolved, which is worth stating plainly
+rather than quietly replacing: **per-horizon models were built and shipped** (−0.00961 on the
+leaderboard, transferring at 4.4×), **the loss function is now closed in both directions** —
 Tweedie and Poisson lost decisively on local measurement, and a mixed L2+Huber objective was
-submitted and lost on the leaderboard.
+submitted and lost on the leaderboard — and **a second model good enough to earn real weight
+was found and then refined**: a recursive per-family model, blended uniformly at first
+(−0.00507, 1.28×) and then given a leave-one-out-validated per-family weight for the three
+families where it consistently helps most (−0.00149, 0.78×). That refinement is now the
+production model.
 
 What the record actually says about where value remains:
 
 | Kind of change | Local → leaderboard | Attempts |
 |---|---|---|
-| Information the model could not previously see | **1.3×–5.6×, once with the sign reversed in our favour** | promotion rework, per-horizon models |
+| Information the model could not previously see | **0×–5.6×, once with the sign reversed in our favour** | promotion rework, per-horizon models, `rmean_3` |
 | A structural inability of the architecture | **5.6×** | dormant-series hard zero |
-| A genuinely complementary second model | **1.28×** | recursive per-family blend |
+| A genuinely complementary second model | **0.78×–1.28×, zero reversals in two attempts** | recursive per-family blend, its family-gated refinement |
 | Fitting the same information better | **~7%, and once with the sign reversed against us** | round cap, mixed objective |
 
-The four categories are not equally worth pursuing, and the fourth may not be worth a submission
-slot at all. A fit-optimisation change has now twice been a clean, paired, multi-seed local win
-and twice failed to deliver: the round cap kept 7% of its measured value, and the Huber mix came
-back **worse by more than it had gained**. Meanwhile every change in the first three categories
-delivered at or above what was measured, and none reversed.
+The four categories are not equally worth pursuing. **Model complementarity is now the most
+reliable category in the project** — two attempts, two confirmed wins, transfer ratios
+0.78×–1.28×, never reversed — because both were validated the same disciplined way: paired
+across seeds or windows the change was never fit on, not read off the window being reported.
+Fit optimisation is the opposite story: two clean, paired, multi-seed local wins and two
+disappointing deliveries, one an outright sign reversal (Huber). The information category sits
+between them: two of three attempts over-transferred by 4×–6× (or more), but the third
+(`rmean_3`) landed flat despite a 5.5σ local result — a reminder that a large effect measured on
+a diluted slice of the data can shrink back to noise once diluted again at submission time.
 
 So the honest ranking is short:
 
-1. **Anything that adds information about the test window the model cannot currently reach.**
-   Fifteen feature attempts have failed here, all for the same diagnosable reason — trees
+1. **Ask whether an existing model is genuinely better on some slice, and validate any weight
+   change leave-one-out across independent windows before trusting it.** This is what worked
+   twice in a row now — first at the whole-model level (recursive vs. direct), then at the
+   family level. The discipline, not the idea, is what made it reliable: every number reported
+   for the family-gated weight was computed on a window the weight had never seen.
+2. **Anything that adds information about the test window the model cannot currently reach.**
+   Sixteen feature attempts have failed here, all for the same diagnosable reason — trees
    reconstruct the pattern from existing features, so the explicit encoding only competes for
    `feature_fraction` budget. The successes came from *removing a constraint* (lag staleness)
-   rather than adding a column.
-2. **Asking what the architecture cannot represent at all.** This question found the largest
+   rather than adding a column, and even those need to be measured on the actual slice they
+   serve, not diluted across the whole window, to know whether they are real before shipping.
+3. **Asking what the architecture cannot represent at all.** This question found the largest
    transfer in the project, and it was found by comparing submission CSVs row by row rather than
    by hypothesis.
-3. **A second model good enough to earn real weight.** Seven candidates measured; only one
-   passed both tests. Decorrelation is necessary but not sufficient — a partner 0.10 RMSLE behind
-   cannot earn weight no matter how differently it errs.
 
 Not worth further effort, on this evidence: hyperparameters, ensemble size (saturated at ~6
 models), objectives, calibration, and any diversity axis that turns out to correlate at 0.97 with
