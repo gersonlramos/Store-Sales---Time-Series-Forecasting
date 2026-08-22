@@ -48,6 +48,7 @@ covers the full test set):
 | + dormant-series hard zero | 0.39586 | ≈0.3859 | transferred **5.6×**; found by diffing submissions, see below |
 | **+ recursive per-family blend (70/30)** | **0.39079** | **0.38469** | **current** — the first blend partner that was both decorrelated and comparable |
 | + mixed L2 + Huber objective in the direct half | 0.39320 | 0.39139 | ❌ reverted, +0.00241 — a paired 5/5-seed local *win* that reversed sign on the real window |
+| + `rmean_3` in the near-horizon buckets | 0.39094 | 0.38494 | ⚠️ not adopted, +0.00015 — flat, inside environment noise, despite a 5.5σ local win |
 
 Reference points on the same holdout: all-zeros 4.4195 · last observed day 0.6595 ·
 mean of last 16 days 0.5224 · **same-weekday mean of last 8 weeks 0.5206** (the naive bar).
