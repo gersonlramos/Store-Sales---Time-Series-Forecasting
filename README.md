@@ -51,8 +51,6 @@ covers the full test set):
 | + mixed L2 + Huber objective in the direct half | 0.39320 | 0.39139 | ❌ reverted, +0.00241 — a paired 5/5-seed local *win* that reversed sign on the real window |
 | + `rmean_3` in the near-horizon buckets | 0.39094 | 0.38494 | ⚠️ not adopted, +0.00015 — flat, inside environment noise, despite a 5.5σ local win |
 | **+ family-gated blend weight (SCHOOL/HOME APPLIANCES/AUTOMOTIVE)** | **0.38930** | **0.38469** | **current** — leave-one-out validated across three independent windows, zero sign reversals; transferred at 0.78× |
-| + mixed L2 + Huber objective in the direct half | 0.39320 | 0.39139 | ❌ reverted, +0.00241 — a paired 5/5-seed local *win* that reversed sign on the real window |
-| + `rmean_3` in the near-horizon buckets | 0.39094 | 0.38494 | ⚠️ not adopted, +0.00015 — flat, inside environment noise, despite a 5.5σ local win |
 
 Reference points on the same holdout: all-zeros 4.4195 · last observed day 0.6595 ·
 mean of last 16 days 0.5224 · **same-weekday mean of last 8 weeks 0.5206** (the naive bar).
@@ -160,9 +158,10 @@ so any value other than zero would mean the assembly was wired wrong. It is asse
   per seed.
 - **The panel is held wide** (dates × series, 1,704 × 1,782) so a lag or rolling window is one
   vectorised operation instead of a groupby over 3M rows.
-- **A recursive per-family model supplies 30% of the forecast**, averaged in log space. It is
-  the only blend partner found that is both decorrelated from the direct model (residual
-  correlation 0.917) and comparable to it in quality.
+- **A recursive per-family model supplies 30% of the forecast for most categories** (65%/10%/50%
+  for three that consistently behave differently — see below), averaged in log space. It is the
+  only blend partner found that is both decorrelated from the direct model (residual correlation
+  0.917) and comparable to it in quality.
 - **Structurally dead series are forced to exactly zero** as a post-processing step — a pooled
   model cannot represent exact zero, so this fixes what the architecture cannot express rather
   than what the features fail to say.
@@ -175,11 +174,13 @@ notebooks/
   01_exploratory_data_analysis.ipynb         EDA + effect sizing
   02_feature_engineering_and_modelling.ipynb features, LightGBM, ablations
 FEATURE_DICTIONARY.md                        all 60 model inputs: definition, source, legality
+CHANGELOG.md                                 version history — every shipped change and why
 kaggle_family_gate_blend_submission.ipynb    best model — direct + recursive blend, family-gated weight (LB 0.38930)
 kaggle_recursive_blend_submission.ipynb      the uniform-weight blend this improves on (LB 0.39079)
 kaggle_horizon_submission.ipynb              the direct half on its own (LB 0.39586)
 kaggle_store_sales_submission.ipynb          single-model reference (LB 0.42074)
 kaggle_tide_lgbm_ensemble.ipynb              deep-learning ensemble experiment (null result)
+kaggle_naive_control.ipynb                   naive seasonal baseline, submitted for calibration (LB 0.52063)
 stakeholder_sales_forecast_report.ipynb      business-facing report (no ablation log)
 submissions/                                 generated forecasts
 CLAUDE.md                                    full engineering log and working rules
