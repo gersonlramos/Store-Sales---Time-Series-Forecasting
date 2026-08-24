@@ -6,7 +6,7 @@ Corporación Favorita, Ecuador ([Kaggle playground competition](https://www.kagg
 Global LightGBM models scoring **RMSLE 0.38469** on a held-out fortnight — **26% better than
 the strongest naive baseline** (0.52063, same-weekday mean of the last 8 weeks) — and
 **0.38930 on the public leaderboard**. Four **direct** per-horizon models supply 70% of the
-forecast (65%/90%/50% for three families with their own leave-one-out-validated weight); a
+forecast (35%/90%/50% for three families with their own leave-one-out-validated weight); a
 **recursive** per-family model supplies the rest.
 
 > The interesting part of this repository is not the score. It is the **measurement record**:
