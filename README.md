@@ -177,7 +177,8 @@ data/                                        raw competition CSVs (not in the re
 notebooks/
   01_exploratory_data_analysis.ipynb         EDA + effect sizing
   02_feature_engineering_and_modelling.ipynb features, LightGBM, ablations
-FEATURE_DICTIONARY.md                        all 60 model inputs: definition, source, legality
+documentation/
+  FEATURE_DICTIONARY.md                        all 60 model inputs: definition, source, legality
 final_model/                                 the model to look at — production, LB 0.38930
   kaggle_family_gate_blend_submission.ipynb    direct + recursive blend, family-gated weight
   stakeholder_sales_forecast_report.ipynb      the same model, written up first-person for a general audience
