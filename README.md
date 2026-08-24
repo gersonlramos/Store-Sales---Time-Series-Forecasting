@@ -13,8 +13,9 @@ forecast (65%/90%/50% for three families with their own leave-one-out-validated 
 > which changes were tested, which were rejected, and — twice — how an effect that was
 > confidently reported at first turned out to be an artefact once confounders were held fixed.
 
-**Project status: complete.** 0.38930 is the final result — see [CHANGELOG.md](CHANGELOG.md)
-for the full version history and the closing round of investigation that confirmed it.
+**Project status: complete.** 0.38930 is the final result — see
+[development/CHANGELOG.md](development/CHANGELOG.md) for the full version history and the
+closing round of investigation that confirmed it.
 
 ---
 
@@ -177,14 +178,16 @@ notebooks/
   01_exploratory_data_analysis.ipynb         EDA + effect sizing
   02_feature_engineering_and_modelling.ipynb features, LightGBM, ablations
 FEATURE_DICTIONARY.md                        all 60 model inputs: definition, source, legality
-CHANGELOG.md                                 version history — every shipped change and why
-kaggle_family_gate_blend_submission.ipynb    best model — direct + recursive blend, family-gated weight (LB 0.38930)
-kaggle_recursive_blend_submission.ipynb      the uniform-weight blend this improves on (LB 0.39079)
-kaggle_horizon_submission.ipynb              the direct half on its own (LB 0.39586)
-kaggle_store_sales_submission.ipynb          single-model reference (LB 0.42074)
-kaggle_tide_lgbm_ensemble.ipynb              deep-learning ensemble experiment (null result)
-kaggle_naive_control.ipynb                   naive seasonal baseline, submitted for calibration (LB 0.52063)
-stakeholder_sales_forecast_report.ipynb      business-facing report (no ablation log)
+final_model/                                 the model to look at — production, LB 0.38930
+  kaggle_family_gate_blend_submission.ipynb    direct + recursive blend, family-gated weight
+  stakeholder_sales_forecast_report.ipynb      the same model, written up first-person for a general audience
+development/                                 the path here — every notebook that was once "the best," in order
+  CHANGELOG.md                                 version history — every shipped change and why
+  kaggle_naive_control.ipynb                   naive seasonal baseline, submitted for calibration (LB 0.52063)
+  kaggle_store_sales_submission.ipynb          single-model reference (LB 0.42074)
+  kaggle_horizon_submission.ipynb              the direct half on its own (LB 0.39586)
+  kaggle_recursive_blend_submission.ipynb      the uniform-weight blend the final model improves on (LB 0.39079)
+  kaggle_tide_lgbm_ensemble.ipynb              deep-learning ensemble experiment (null result)
 submissions/                                 generated forecasts
 CLAUDE.md                                    full engineering log and working rules
 ```
@@ -343,7 +346,7 @@ to `kagglehub.competition_download()`, so they also run unmodified on Kaggle.
 pip install -r requirements.txt
 
 python -m nbconvert --to notebook --execute --inplace notebooks/01_exploratory_data_analysis.ipynb
-python -m nbconvert --to notebook --execute --inplace kaggle_store_sales_submission.ipynb
+python -m nbconvert --to notebook --execute --inplace final_model/kaggle_family_gate_blend_submission.ipynb
 ```
 
 Notebooks are committed **with outputs** and must run top to bottom without error.

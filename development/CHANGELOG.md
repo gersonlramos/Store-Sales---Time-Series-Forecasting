@@ -4,7 +4,7 @@ How the model went from **0.55331** to **0.38930** on the public leaderboard —
 changes, in the order they happened, each with the reasoning that justified it at the time.
 Rejected attempts are noted inline where they explain why the path bends the way it does; the
 full account of every rejection (roughly 40, each with a measured reason) lives in the
-[README's measurement record](README.md#what-makes-this-project-unusual-the-measurement-record)
+[README's measurement record](../README.md#what-makes-this-project-unusual-the-measurement-record)
 and this repository's private engineering log.
 
 Every score below is the **public leaderboard** — this competition has no private leaderboard,
@@ -137,7 +137,7 @@ ruled out by computing its theoretical ceiling before building it, a technique t
 and saved a notebook each time).
 
 The full reasoning for each is in the private engineering log; the ones with real leaderboard
-consequences are in the [README](README.md#results).
+consequences are in the [README](../README.md#results).
 
 ---
 
