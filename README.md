@@ -13,6 +13,9 @@ forecast (65%/90%/50% for three families with their own leave-one-out-validated 
 > which changes were tested, which were rejected, and — twice — how an effect that was
 > confidently reported at first turned out to be an artefact once confounders were held fixed.
 
+**Project status: complete.** 0.38930 is the final result — see [CHANGELOG.md](CHANGELOG.md)
+for the full version history and the closing round of investigation that confirmed it.
+
 ---
 
 ## The problem

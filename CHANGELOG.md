@@ -138,3 +138,41 @@ and saved a notebook each time).
 
 The full reasoning for each is in the private engineering log; the ones with real leaderboard
 consequences are in the [README](README.md#results).
+
+---
+
+## Closing round — four more ideas, post-v9, none adopted
+**2026-08-22**
+
+After v9 shipped, four additional ideas were raised — sharp enough that each was investigated
+properly rather than dismissed by analogy to something already closed. None survived paired
+testing:
+
+- **Completing the per-horizon design** (a model for every day 5–16, not one model for the
+  whole range). Looked real at first — a single-day exploratory read showed a 3/3-seed, 2.7σ
+  win at day 8. It didn't survive contact with a larger, more realistic sample: scored as the
+  actual bucket redesign it would be (days 5–8 together, 7,128 rows instead of 1,782), the
+  effect fell to 1.0σ with no consistent pattern across the four days. The lesson worth keeping:
+  a result measured on an unusually small slice needs to be re-measured on the realistic
+  deployment-sized slice before it's trusted — the noise floor moves with sample size, it isn't
+  a fixed number.
+- **Auditing the forward-promo features at the panel's true edge**, where they go NaN on ~44%
+  of real test rows in a pattern training data never exhibits. The result was ambiguous rather
+  than reassuring or alarming (one of three windows even improved under the audit condition),
+  and unlike this project's one confirmed edge-of-panel bug, nothing here showed the sharp,
+  unambiguous signature a real problem of that kind would produce.
+- **Family promo coverage** — how many stores in a category are running any promotion, distinct
+  from total promo intensity. The motivating pattern was real and verified directly against the
+  competition data (some categories show 2–5× more stores promoting in the forecast window than
+  their own recent norm), but neither a level nor a relative version of the feature cleared even
+  the weakest bar this project used to justify further testing.
+- **Promotion streak length** — not run. It's a strictly more complex function of the same raw
+  near-term promotion signal that had already tested as essentially unused by the model.
+
+## Project status: complete
+
+**0.38930 is the final result.** Every well-motivated idea raised after it — across two full
+rounds of investigation — was tested with the same discipline that shipped v9, and none held up.
+That includes ideas with real, independently-verified patterns behind them; verifying a pattern
+exists in the data and finding that a model can profitably use it turned out to be two different
+questions more often than not. No further changes are planned.
