@@ -19,6 +19,11 @@ env/
 .claude/
 CLAUDE.md
 
+# --- Local-only code documentation -------------------------------------------
+# Cell-by-cell walkthroughs of the notebooks, for my own reference. Not meant
+# for the public repo -- FEATURE_DICTIONARY.md in the same folder is.
+documentation/*_CODE_WALKTHROUGH.md
+
 # --- Python / Jupyter noise -------------------------------------------------
 __pycache__/
 *.py[cod]
