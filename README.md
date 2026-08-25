@@ -5,7 +5,7 @@ Corporación Favorita, Ecuador ([Kaggle playground competition](https://www.kagg
 
 My global LightGBM models score **RMSLE 0.38469** on a held-out fortnight — **26% better than
 the strongest naive baseline** I could compare against (0.52063, same-weekday mean of the last
-8 weeks) — and **0.38930 on the public leaderboard**. Four **direct** per-horizon models supply
+8 weeks) — and **0.38924 on the public leaderboard**. Four **direct** per-horizon models supply
 70% of the forecast (35%/90%/50% for three families where I found my own leave-one-out-validated
 weight); a **recursive** per-family model supplies the rest.
 
@@ -13,9 +13,11 @@ weight); a **recursive** per-family model supplies the rest.
 > kept as I went: which changes I tested, which I rejected, and — twice — how an effect I
 > confidently reported at first turned out to be an artefact once I held the confounders fixed.
 
-**Project status: complete.** 0.38930 is my final result — see
-[development/CHANGELOG.md](development/CHANGELOG.md) for the full version history and the
-closing round of investigation that confirmed it.
+**Current best: 0.38924.** A closing round I thought was final turned up one more
+leave-one-out-validated refinement (a per-family dormant-zero threshold for BABY CARE) that
+landed inside my own established Kaggle-vs-local noise band — not a confirmed win, but not
+contradicted either. See [development/CHANGELOG.md](development/CHANGELOG.md) for the full
+version history.
 
 ---
 
@@ -54,7 +56,8 @@ score covers the full test set):
 | + recursive per-family blend (70/30) | 0.39079 | 0.38469 | the first blend partner I found that was both decorrelated and comparable |
 | + mixed L2 + Huber objective in the direct half | 0.39320 | 0.39139 | ❌ reverted, +0.00241 — a paired 5/5-seed local *win* that reversed sign on the real window |
 | + `rmean_3` in the near-horizon buckets | 0.39094 | 0.38494 | ⚠️ not adopted, +0.00015 — flat, inside environment noise, despite a 5.5σ local win |
-| **+ family-gated blend weight (SCHOOL/HOME APPLIANCES/AUTOMOTIVE)** | **0.38930** | **0.38469** | **current** — leave-one-out validated across three independent windows, zero sign reversals; transferred at 0.78× |
+| + family-gated blend weight (SCHOOL/HOME APPLIANCES/AUTOMOTIVE) | 0.38930 | 0.38469 | leave-one-out validated across three independent windows, zero sign reversals; transferred at 0.78× |
+| **+ BABY CARE per-family dormant threshold (90d vs. global 365d)** | **0.38924** | 0.38469 | **current** — ⚠️ −0.00006, inside my own ~0.0004 Kaggle-vs-local noise band; not a confirmed win, but no reversal either |
 
 Reference points on the same holdout: all-zeros 4.4195 · last observed day 0.6595 ·
 mean of last 16 days 0.5224 · **same-weekday mean of last 8 weeks 0.5206** (my naive bar).
@@ -181,15 +184,16 @@ notebooks/
   02_feature_engineering_and_modelling.ipynb features, LightGBM, ablations
 documentation/
   FEATURE_DICTIONARY.md                        all 60 model inputs: definition, source, legality
-final_model/                                 the model to look at — production, LB 0.38930
-  kaggle_family_gate_blend_submission.ipynb    direct + recursive blend, family-gated weight
+final_model/                                 the model to look at — production, LB 0.38924
+  kaggle_baby_care_dormant_submission.ipynb    family-gated blend + a per-family dormant threshold
   stakeholder_sales_forecast_report.ipynb      the same model, written up first-person for a general audience
 development/                                 the path here — every notebook that was once "the best," in order
   CHANGELOG.md                                 version history — every shipped change and why
   kaggle_naive_control.ipynb                   naive seasonal baseline, submitted for calibration (LB 0.52063)
   kaggle_store_sales_submission.ipynb          single-model reference (LB 0.42074)
   kaggle_horizon_submission.ipynb              the direct half on its own (LB 0.39586)
-  kaggle_recursive_blend_submission.ipynb      the uniform-weight blend the final model improves on (LB 0.39079)
+  kaggle_recursive_blend_submission.ipynb      the uniform-weight blend the family-gate model improves on (LB 0.39079)
+  kaggle_family_gate_blend_submission.ipynb    direct + recursive blend, family-gated weight (LB 0.38930)
   kaggle_tide_lgbm_ensemble.ipynb              deep-learning ensemble experiment (null result)
 submissions/                                 generated forecasts
 CLAUDE.md                                    my full engineering log and working rules
@@ -353,7 +357,7 @@ falls back to `kagglehub.competition_download()`, so they also run unmodified on
 pip install -r requirements.txt
 
 python -m nbconvert --to notebook --execute --inplace notebooks/01_exploratory_data_analysis.ipynb
-python -m nbconvert --to notebook --execute --inplace final_model/kaggle_family_gate_blend_submission.ipynb
+python -m nbconvert --to notebook --execute --inplace final_model/kaggle_baby_care_dormant_submission.ipynb
 ```
 
 I commit notebooks **with outputs**, and I keep them running top to bottom without error.
